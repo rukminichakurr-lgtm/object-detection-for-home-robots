@@ -1,50 +1,51 @@
+
 from ultralytics import YOLO
+from collections import Counter
 from pathlib import Path
+import json
 
-# Load the pretrained object detection model
-model = YOLO("yolov8n.pt")
+MODEL_NAME = "yolov8n.pt"
+CONFIDENCE_THRESHOLD = 0.40
+OUTPUT_DIR = Path("outputs")
+IMAGE_PATH = OUTPUT_DIR / "detected_objects.jpg"
 
+OUTPUT_DIR.mkdir(exist_ok=True)
 
 def detect_objects(image_path):
-    """Detect objects in an image and display the results."""
+    if not Path(image_path).is_file():
+        raise FileNotFoundError(f"Image not found: {image_path}")
 
-    image = Path(image_path)
-
-    if not image.exists():
-        print(f"Image not found: {image_path}")
-        return
-
+    model = YOLO(MODEL_NAME)
     results = model.predict(
-        source=str(image),
-        conf=0.40,
-        save=True
+        source=str(image_path),
+        conf=CONFIDENCE_THRESHOLD
     )
 
-    detected_objects = []
+    result = results[0]
+    result.save(filename=str(OUTPUT_DIR / "detected_objects.jpg"))
 
-    for result in results:
-        names = result.names
+    report = []
 
-        if result.boxes is not None:
-            for box in result.boxes:
-                class_id = int(box.cls[0])
-                confidence = float(box.conf[0])
-                object_name = names[class_id]
+    for box in result.boxes:
+        class_id = int(box.cls[0])
+        x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
 
-                detected_objects.append(object_name)
+        report.append({
+            "object": result.names[class_id],
+            "confidence": round(float(box.conf[0]), 4),
+            "position": [x1, y1, x2, y2]
+        })
 
-                print(
-                    f"Object: {object_name} | "
-                    f"Confidence: {confidence:.2%}"
-                )
+    with open(OUTPUT_DIR / "detection_report.json", "w") as file:
+        json.dump(report, file, indent=4)
 
-    print("\nTotal objects detected:", len(detected_objects))
+    print("\n===== OBJECT DETECTION REPORT =====")
+    for name, count in Counter(x["object"] for x in report).items():
+        print(f"{name}: {count}")
 
-    print("\nObject counts:")
-    for name in sorted(set(detected_objects)):
-        print(f"{name}: {detected_objects.count(name)}")
-
+    print("\nTotal objects detected:", len(report))
+    print("Report saved:", OUTPUT_DIR / "detection_report.json")
+    print("Image saved:", OUTPUT_DIR / "detected_objects.jpg")
 
 if __name__ == "__main__":
-    image_path = input("Enter the image path: ").strip()
-    detect_objects(image_path)
+    detect_objects(IMAGE_PATH)
