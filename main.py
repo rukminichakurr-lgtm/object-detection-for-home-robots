@@ -1,28 +1,32 @@
-
 from ultralytics import YOLO
 from collections import Counter
 from pathlib import Path
+import argparse
 import json
 
 MODEL_NAME = "yolov8n.pt"
 CONFIDENCE_THRESHOLD = 0.40
 OUTPUT_DIR = Path("outputs")
-IMAGE_PATH = OUTPUT_DIR / "detected_objects.jpg"
 
-OUTPUT_DIR.mkdir(exist_ok=True)
 
 def detect_objects(image_path):
-    if not Path(image_path).is_file():
-        raise FileNotFoundError(f"Image not found: {image_path}")
+    image_path = Path(image_path)
+
+    if not image_path.is_file():
+        print("Error: Image file not found!")
+        return
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     model = YOLO(MODEL_NAME)
-    results = model.predict(
+
+    result = model.predict(
         source=str(image_path),
         conf=CONFIDENCE_THRESHOLD
-    )
+    )[0]
 
-    result = results[0]
-    result.save(filename=str(OUTPUT_DIR / "detected_objects.jpg"))
+    output_image = OUTPUT_DIR / f"{image_path.stem}_detected.jpg"
+    result.save(filename=str(output_image))
 
     report = []
 
@@ -36,16 +40,29 @@ def detect_objects(image_path):
             "position": [x1, y1, x2, y2]
         })
 
-    with open(OUTPUT_DIR / "detection_report.json", "w") as file:
+    report_path = OUTPUT_DIR / f"{image_path.stem}_report.json"
+
+    with open(report_path, "w", encoding="utf-8") as file:
         json.dump(report, file, indent=4)
 
     print("\n===== OBJECT DETECTION REPORT =====")
-    for name, count in Counter(x["object"] for x in report).items():
+
+    for name, count in Counter(
+        item["object"] for item in report
+    ).items():
         print(f"{name}: {count}")
 
     print("\nTotal objects detected:", len(report))
-    print("Report saved:", OUTPUT_DIR / "detection_report.json")
-    print("Image saved:", OUTPUT_DIR / "detected_objects.jpg")
+    print("Detected image saved:", output_image)
+    print("JSON report saved:", report_path)
+
 
 if __name__ == "__main__":
-    detect_objects(IMAGE_PATH)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("image", nargs="?", help="Input image path")
+    args = parser.parse_args()
+
+    image_path = args.image or input("Enter image path: ").strip()
+    detect_objects(image_path)
+
+
