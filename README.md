@@ -1,10 +1,9 @@
 
-# 
-🤖 Object Detection for Home Robots
+# Object Detection for Home Robots
 
 An AI-powered object detection system built using Python and YOLOv8 to identify objects in images, estimate their locations, and generate detection reports.
 
-## ✨ Features
+## Features
 
 - Detect multiple objects in images
 - Display object names and confidence scores
@@ -14,7 +13,7 @@ An AI-powered object detection system built using Python and YOLOv8 to identify 
 - Generate JSON detection reports
 - Explore object detection for home robotics
 
-## 🛠️ Technologies Used
+## Technologies Used
 
 - Python
 - YOLOv8
@@ -24,7 +23,7 @@ An AI-powered object detection system built using Python and YOLOv8 to identify 
 - Matplotlib
 - JSON
 
-## 📦 Installation
+##  Installation
 
 Install Python, then install the required libraries:
 
